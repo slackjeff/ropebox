@@ -1,0 +1,380 @@
+#!/usr/bin/env bash
+# ENCONDING UTF-8
+#================HEADER======================================================|
+#Autor
+# Jefferson Rocha <root@slackjeff.com.br>
+#
+#PROGRAMA
+# ROPEBOX - Simples agendador de Tarefas
+#
+#DESCRIÇÃO
+# Agende suas tarefas de uma maneira fácil e simples.
+#
+#SITE
+# http://slackjeff.com.br/programas/ropebox.html
+#
+#CHANGELOG
+# https://notabug.org/jeffersonrocha/ropebox/raw/master/changelog.txt
+#============================================================================|
+
+#================VARIAVEIS
+NAME="RopeBox"
+VERSION="1.D"
+directory_task="${HOME}/ropebox"
+DATE=$(date +%d/%m/%Y)
+LINK="https://notabug.org/jeffersonrocha/ropebox"
+#========Cores
+red='\033[31;1m'
+green='\033[32;1m'
+cyan='\033[36;1m'
+end='\033[m'
+
+#================BIBLIOTECAS
+source "${directory_task}/ropebox.conf"
+
+#================VERIFICACOES INICIAIS
+[ "$UID" = "0" ] && { echo "Root não é permitido."; exit 1 ;}
+#  Bash existe?
+type bash &>/dev/null || \
+   { echo -e "${red}Você necessita do Shell Bash para continuar.${end}";exit 1;}
+
+# Diretorio ropebox existe?
+[ ! -d "$directory_task" ] && \
+   { echo -e "${red}O diretório ropebox, não foi encontrado em seu Home. Abortando.${end}";exit 1;}
+
+
+#================FUNCOES
+_HELP()
+{
+cat <<EOF | less
+${NAME} ${VERSION} - Simples Gerenciador de Tarefas.
+
+COMANDOS:
+
++
+   Adiciona nova Tarefa
+
+-
+   Remove uma Tarefa
+
+@
+   Edita uma Tarefa
+
+-a
+   Remove Todas Tarefas existentes, com a sua confirmação!
+
+!s
+   Procura uma determinada String/Texto nas tarefas
+
+!a
+   Listagem de todas as Tarefas disponíveis
+
+!al
+   Listagem de todas as tarefas disponíveis em modo coluna.
+   Ótimo para uma visualização rápida.
+
+update
+   Atualiza o ropebox através da internet direto do fonte.
+
+?, help
+   Exibe esta opção de ajuda
+
+q, exit
+   Sair do ${NAME}
+
+
++-------------------+
+| NOTAS IMPORTANTES | 
++-------------------+
+**Para manter a simplicidade o ${NAME} não auto procura o editor padrão que você utiliza.
+Isso devido ao fato que você usuário deve adicionar qual editor você mais gosta.
+Você deve alterar a variável 'my_editor' e adicionar o seu editor de texto favorito!
+Por PADRÃO o editor vem apontado como 'nano' que é um editor simples e fácil presente
+por padrão em quase todos distribuições GNU/Linux.
+
++-----+
+| BUG |
++-----+
+Caso encontre algum bug ou tem alguma sugestão envie um email para
+root@slackjeff.com.br
+
++---------+
+| LICENÇA |
++---------+
+Este Software está protegido com a licença GNU GPL VERSÃO 3.
+
+EOF
+}
+
+_BAR() # Barra de inicio
+{
+   echo -e "${cyan}${NAME}${end} Versão ${cyan}${VERSION}${end}"
+   echo "Para informações digite ?, help | exit, CTRL+C para sair"
+   printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' -
+   echo
+}
+
+_VIEWER() # Leitor de arquivos de textos/tarefas.
+{
+   while read line; do
+      echo "$line"
+   done < "$archive"
+}
+
+_TEMPLATE() # Template para criação de nova tarefa
+{
+cat > "${directory_task}/task/${doc_name}.txt" <<END
+#####################################################################
+Nome da Tarefa  = ${input2}
+Chamada Rápida  = ${fast_num}
+Data de Criação = ${DATE}
+Criado por      = ${USER}
++-------------------------------------------------------------------+
+
+END
+}
+
+_ENTRY() # Entrar no diretorio de task/tarefas
+{
+   cd "${directory_task}/task/"
+}
+
+_ADD_TASK() # Adiciona nova tarefa
+{
+  ( # Subshell
+   # Criando o número de chamada rápida
+   # de acordo com a quantidade de arquivos no diretório.
+   _ENTRY
+   shopt -s nullglob dotglob # Mudando propriedades do shell.
+   files=(*)                 # Recolhendo quantidade de arquivos no diretório.
+   total=$(echo ${#files[@]})
+   fast_num="$(( $total + 1 ))"
+   _TEMPLATE # Chamando função para criar template
+   "$my_editor" "${directory_task}/task/${doc_name}.txt" # Abrindo editor
+  )
+}
+
+_REMOVE_TASK() # Remover uma tarefa
+{
+    ( # Subshell
+     _ENTRY
+     # Procurando por task nos diretorios on e off
+     for archive in *; do
+        [ "$archive" = '*' ] && { echo -e "${red}{ALERTA}${end} Nenhuma Tarefa foi Encontrada!"; return 1 ;}
+        fast_call=$(grep "^Cha.*R.*=" "${archive}") # Pegando o número de chamada Rápida.
+        if [ "$fast_call" = "Chamada Rápida  = $doc_name" ]; then
+           task_name=$(grep "^Nom.*Tare.*=" "${archive}" | awk '{print $5}') # Nome da Tarefa/task
+           rm "$archive"
+           echo -e "${green}{OK}${end} Tarefa ${task_name} foi removido com sucesso."
+           return 0
+        elif [ "$archive" = "${doc_name}.txt" ]; then
+           rm "$archive"
+           echo -e "${green}{OK}${end} Tarefa ${input2} foi removido com sucesso." 
+           return 0
+        fi
+     done
+
+     { echo -e "${red}{ALERTA}${end} Nenhuma Tarefa foi Encontrado!"; return 1 ;}
+    )
+}
+
+_EDIT_TASK() # Editar uma tarefa
+{
+    ( # Subshell
+     _ENTRY
+     for open in *; do
+        [ "$open" = '*' ] && { echo -e "${red}{ALERTA}${end} Nenhuma Tarefa foi Encontrada!"; exit 1 ;}
+        fast_call=$(grep "Cha.*R.*=" "${open}") # Pegando o número de chamada Rápida.
+        if [ "$fast_call" = "Chamada Rápida  = $doc_name" ]; then
+           $my_editor "${open}" # Abrindo Editor
+           return 0
+        elif [ "$open" = "${doc_name}.txt" ]; then
+           $my_editor "${open}" # Abrindo Editor
+           return 0
+        fi
+     done
+     echo -e "${red}{ALERTA}${end} Tarefa '$input2' não foi encontrada!"; return 1
+    )
+}
+
+_LIST_ON() # Listar todas as tarefas
+{
+    ( # Subshell
+     _ENTRY
+     for archive in *; do
+        if [ "$archive" = '*' ] || [ -z "$archive" ]; then
+           echo -e "${red}{ALERTA}${end} Nenhuma Tarefa ativa!"
+           return 1
+        fi
+        _VIEWER # Chamando função de visualização de arquivo de texto.
+        # Pulando duas linhas.
+        echo
+        echo
+     done
+    )
+}
+
+_LIST_SIMPLE() # Exibir a lista simples de tarefas em colunas
+{
+    ( # Subshell
+       _ENTRY
+       tmp="/tmp/templist"
+       echo -e "${cyan}Nº CRIAÇÃO AUTOR TAREFA${end}" >> "$tmp"
+       for archive in *; do
+          # Verificando se existe tarefas
+          if [ "$archive" = '*' ] || [ -z "$archive" ]; then
+             echo -e "${red}{ALERTA}${end} Nenhuma Tarefa ativa!"
+             return 1
+          fi
+          # Pegando os campos necessários para imprimir na coluna
+          #=============
+          # OTIMIZAR!!!!
+          #=============
+          # Este pedaço está muito lento, precisa melhorar a velocidade
+          my_author=$(grep "^Criado.*=" "$archive" | awk '{print $4}')
+          my_task=$(grep "^Nome.*=" "$archive" | sed "s/.*= //; s/ /|/g")
+          my_fast_call=$(grep "^Chamada.*=" "$archive" | awk '{print $4}')
+          my_date=$(grep "^Data.*=" "$archive" | awk '{print $5}')
+          echo -e "${my_fast_call} ${my_date} ${my_author} ${my_task}" >> "$tmp"
+       done
+       sort -n "$tmp" | column -t | sed 's/|/ /g' # Exibir a coluna já tabulada
+       rm "$tmp" # Remover o arquivo temporario
+    )
+}
+
+_SEARCH() # Procurar por uma determinada string nas tarefas
+{
+   ( # Subshell
+    _ENTRY
+    count='0' # Inicializando variável contadora
+    for archive in *; do # Pegando todos os arquivos no diretorio
+       if grep -iq "${input2}" "$archive" &>/dev/null; then # procurando o padrão
+          _VIEWER # Chamando função de visualização de arquivo de texto.
+          echo
+          echo
+          exit 0
+       else
+          count=$((count+1)) # Incremento
+       fi
+    done
+    # Se não achou nada retorna msg.
+    [ "$total" -gt '0' ] && { echo "Nenhuma ocorrência encontrada para: '${input2}'"; exit 1 ;}
+   )
+}
+
+_CLEAR_ALL()
+{
+  ( # Subshell
+   _ENTRY
+   if rm -v * &>/dev/null; then
+      echo "Todas Tarefas foram Removidas com Sucesso!"
+      return 0
+   else
+      echo -e "${red}{ALERTA}${end} Nenhuma Tarefa ativa!" 
+      return 1
+   fi
+  )
+}
+
+_UPDATE()
+{
+   # Declaração de variáveis
+   local NAME=${NAME,,} # Pegando nome e convertendo para lower
+   local ARCHIVE='master.tar.gz' # Nome do pacote do servidor
+   local LINK="https://notabug.org/jeffersonrocha/${NAME}/archive/${ARCHIVE}"
+   echo "Verificando Conexão com Internet..."
+   wget -q --spider www.google.com || { echo "${red}{AVISO}${end} Sem Internet.";exit 1;}
+   ( # Subshell
+     cd "${HOME}" # Entrando no home do usuario
+     if ! wget -q --show-progress "$LINK"; then
+        echo -e "${red}{Alerta}${end} Erro, não foi permitido fazer update."
+        echo "Você não possui acesso com a internet."
+        exit 1
+     fi
+     # Desempacotando e retirando alguns archs na extração.
+     tar xf "${ARCHIVE}"    \
+     --exclude='LICENSE'    \
+     --exclude='README.md'  \
+     --exclude='install.sh'
+     chmod +x "${directory_task}/${NAME}" # Permissão de execução no script.
+     rm "${ARCHIVE}"
+     return 0
+   )
+}
+
+#=======================PRINCIPAL
+clear
+_BAR
+while :; do # Loop principal
+   read -ep "> " input input2 # Entradas principais do usuário
+   # Tudo em Lower
+   input2="${input2,,}"      # Tudo em minusculo
+   # Variável utilizada para criar arquivos de texto,
+   # removendo os caracteres de espaço e substituindo por _
+   doc_name="${input2// /_}"
+   # Verficando Entrada
+   case ${input} in
+      \+)
+         [ "$input2" ] || \
+            { echo -e "${red}{ALERTA}${end} Para adicionar uma Tarefa use: + Nome da Tarefa";continue;}
+         [ "$input2" = '.' ] && \
+            { echo -e "${red}{ALERTA}${end} Não permitido nome como ' . '";continue;}
+
+         ( # Subshell
+           _ENTRY
+           # Verificando se tarefa já existe...
+           for exist in *; do
+              [ "$exist" = "${doc_name}.txt" ] && { conf='yes'; break ;} || conf='no'
+           done
+           if [ "$conf" = 'yes' ]; then
+              echo -e "${red}{ALERTA}${end} Nome desta tarefa já existe!"
+              continue
+           elif [ "$conf" = 'no' ]; then
+              echo "Tarefa criada..."; sleep 0.2s
+              _ADD_TASK
+           fi
+          )
+      ;;
+
+      -)
+         [ "$input2" ] || { echo "Digite o nome da Tarefa que deseja remover."; continue ;}
+         _REMOVE_TASK
+      ;;
+
+      \@)
+         [ "$input2" ] || { echo "Digite o nome da Tarefa que deseja editar."; continue ;}
+         _EDIT_TASK
+      ;;
+
+      !a)
+         _LIST_ON
+      ;;
+
+      !al)
+         _LIST_SIMPLE
+      ;;
+
+      !s)
+         [ "$input2" ] || { echo "Digite a String que deseja pesquisar."; continue ;}
+         _SEARCH
+      ;;
+
+      -a)
+         read -p "{ALERTA} VOCÊ VAI APAGAR TODAS AS SUAS TAREFAS, DESEJA CONTINUAR? 's/N': " clear_all
+         clear_all=${clear_all,,}  # Tudo em minusculo
+         clear_all=${clear_all:=n} # Enter pressionado retorna n.
+         [ "$clear_all" = 's' ] && _CLEAR_ALL || continue
+      ;;
+
+      update) _UPDATE ;;
+
+      clear) clear; _BAR ;;
+
+      \?|help) _HELP  ;;
+
+      q|exit) exit 0  ;;
+
+      *) echo "Comando não encontrado! Para ajuda digite ? ou Help." ;;
+   esac
+done # Loop Principal
+
