@@ -1,0 +1,78 @@
++----------------------------------------------------------------------------+
+Versão 1.E - 15/10/2018 - Jefferson Rocha
+* Melhorado bloco do update
+* Adicionado no bloco de update, verificação com a internet.
+* {FIX} Arrumado bug do pacote que baixava e ficava
+
++----------------------------------------------------------------------------+
+Versão 1.D - 15/10/2018 - Jefferson Rocha
+* Alterado bloco de entrada teste simples por bloco if
+* {FIX} Bug do . que deixava a tarefa oculta e ia somando na conta total de
+  verificação de arquivos
+* Alterado string 'Data' na opção !al para Criação.
+* Adicionado Opção de update do programa, buscando diretamente do servidor.
+* {FIX} Arrumado Bug do clear, pelo stdin/read ser  interativo quando executado 
+  o comando clear apagava a tela e sumia a barra de inicio do ropebox.
+  Agora o comando clear é executado pelo próprio ropebox.
+
++----------------------------------------------------------------------------+
+Versão 1.C - 22/09/2018 - Jefferson Rocha
+* Removido opções '-all' '!all' 'ajuda'
+* Arrumado bug da procura de string/texto que encontrava padrão mas mesmo assim
+  retornava que não tinha encontrado o padrão.
+
++----------------------------------------------------------------------------+
+Versão 1.B - 22/09/2018 - Jefferson Rocha
+* Corrigido alguns erros de ortografia.
+* Quebrado Duas linhas para separar o final de cada arquivo quando o usuário
+  digitar a opção para listar todas tarefas
+* Resolvido NOVAMENTE o problema da tarefa que duplicava, acho que agora vai.
+* Alterado variável doc_name de lugar para reduzir chamadas.
+* Loop while que era usado para leitor das tarefas agora está na função _VIEWER
+* Agora a procura por strings funciona como deveria.
+* Adicionado a opção '!al' que exibe todas tarefas em colunas de acesso rápido
+
++----------------------------------------------------------------------------+
+Versão 1.A - 22/09/2018 - Jefferson Rocha
+* Adicionado tecla de atalho 'q' para sair
+* Trocado mensagem que exibia {ERRO} por {ALERTA}
+* Movido cores do arquivo de configuração 'ropebox.conf' para o arquivo 
+  principal ropebox.
+* Adicionado mais 2 editores na instalação 'mcedit' e 'emacs'
+* Agora o ropebox está no .bashrc para chamada com alias, 'ropebox' isto
+  torna o processo de execução do mesmo mais rápido para o usuário.
+* Substituido comando 'list-all' por '!a'
+* Substituido comando 'remove-all' por '-a'
+* Removido o comando quit.
+* Retirado informação de STATUS da tarefa
+* Trocado linha da tarefa por hash # de 70 colunas para melhor visualização.
+* Adicionado trava de segurança na opção de remover todas as tarefas.
+
++----------------------------------------------------------------------------+
+Versão 1.0 - 19/09/2018 - Jefferson Rocha
+* Adicionado opção 'quit' em paralelo ao 'exit'.
+* Sleep "Task criada" mudado para 0.2s
+* Adicionado Opção para remover todas task de uma só vez opção '-all'
+* Ajustado para um modo mais simples a documentação.
+* Adicionado opção de chamada rápida para editar Tarefas.
+* Agora o programa remove com chamada rápida.
+* Criado uma função para entrar no diretório de task '_ENTRY'
+
++----------------------------------------------------------------------------+
+Versão 0.C - 04/09/2018 - Jefferson Rocha
+* Arrumado o Bug da criação de task/tarefa que ficava em loop, criando 3 vezes
+  a mesma tarefa
+
++----------------------------------------------------------------------------+
+Versão 0.B - 03/09/2018 - Jefferson Rocha
+* Adicionado arquivo de configuração externo 'ropebox.conf'
+  e adicionado configurações para usuário.
+* Criado changelog.txt
+* Arrumado bug do > no prompt, ele apagava quando digitado alguma coisa,
+  e apagava junto com a string.
+* Substituido expansão de variaveis de uppercase para lowercase para o comando
+  tr. Trocado para o comando tr.
+* Criado um instalador simples 'install.sh'
+* Adicionado verificação se tarefa/arquivo txt existe ou não em diretorio
+  diretorio task
++----------------------------------------------------------------------------+
